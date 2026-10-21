@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -18,7 +19,8 @@ body {
   margin:0;
   background:var(--paper);
   color:var(--ink);
-  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC", "PingFang TC",sans-serif;
+  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",
+    "PingFang TC",sans-serif;
   line-height:1.65;
 }
 header {
@@ -162,7 +164,7 @@ footer { text-align:center; color:var(--muted); font-size:12px; padding:12px 0 3
       <h3>今日練習紀錄</h3>
       <label for="reflection" class="muted">今天最順的地方、遇到的問題或明天的目標：</label>
       <textarea id="reflection" rows="4" style="width:100%;margin-top:8px;padding:12px;border:1px solid var(--line);border-radius:10px;font:inherit" placeholder="例如：C 到 G 的轉換更順了，明天繼續練習節拍器 60 BPM。"></textarea>
-      <p class="muted">紀錄會保留在瀏覽器中，重新整理網頁也不會消失。</p>
+      <p class="muted">紀錄會保留在目前這個網頁頁面中；若重新整理頁面，請先自行複製保存。</p>
     </div>
   </section>
 
@@ -216,7 +218,6 @@ const plans = {
 
 let current = "standard";
 
-// 渲染清單項目
 function makeItems(id, items, isDaily=false) {
   const root = document.getElementById(id);
   root.innerHTML = "";
@@ -246,55 +247,62 @@ function makeItems(id, items, isDaily=false) {
     root.appendChild(el);
   });
 }
+makeItems("standardList", plans.standard);
+makeItems("advancedList", plans.advanced);
+makeItems("dailyList", plans.daily, true);
 
-// 更新進度條與狀態
+document.querySelectorAll(".tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    current = btn.dataset.tab;
+    document.querySelectorAll(".tab").forEach(b =>
+      b.classList.toggle("active", b === btn));
+    document.querySelectorAll(".panel").forEach(p =>
+      p.hidden = p.id !== current);
+    document.getElementById("modeLabel").textContent =
+      current === "standard" ? "標準練習" :
+      current === "advanced" ? "進階練習" : "每日 XP 任務";
+    updateProgress();
+  });
+});
+
 function updateProgress() {
-  const checkboxes = document.querySelectorAll(`input[data-group="${current}List"]`);
-  const total = checkboxes.length;
-  const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
-  
-  document.getElementById("progressText").textContent = `${checked} / ${total} 項`;
-  const percent = total > 0 ? (checked / total) * 100 : 0;
-  document.getElementById("progressBar").style.width = `${percent}%`;
+  const listId = current === "standard" ? "standardList" :
+    current === "advanced" ? "advancedList" : "dailyList";
+  const boxes = [...document.querySelectorAll(
+    `#${listId} input[type="checkbox"]`)];
+  const done = boxes.filter(b => b.checked).length;
+  const total = boxes.length;
+  const percent = total ? Math.round(done / total * 100) : 0;
+  document.getElementById("progressText").textContent =
+    `${done} / ${total} 項`;
+  document.getElementById("progressBar").style.width = percent + "%";
+  document.getElementById("progressHint").textContent =
+    percent === 100 ? "太棒了！今天的練習已完成。" :
+    percent >= 50 ? "做得很好，繼續保持！" : "開始今天的練習吧！";
 
-  const hintText = document.getElementById("progressHint");
-  if (percent === 100) {
-    hintText.textContent = "太棒了！今日練習全部達成！";
-  } else if (percent > 0) {
-    hintText.textContent = "持續前進，加油！";
-  } else {
-    hintText.textContent = "開始今天的練習吧！";
-  }
-
-  if (current === "daily") {
-    let currentXp = 0;
-    let maxXp = 0;
-    checkboxes.forEach((cb, idx) => {
-      const xpValue = plans.daily[idx][2];
-      maxXp += xpValue;
-      if (cb.checked) currentXp += xpValue;
-    });
-    
-    document.getElementById("xpTotal").textContent = currentXp;
-    document.getElementById("xpProgress").textContent = `完成 ${checked} / ${total} 項`;
-    const xpPercent = maxXp > 0 ? (currentXp / maxXp) * 100 : 0;
-    document.getElementById("xpBar").style.width = `${xpPercent}%`;
-    document.getElementById("xpPercent").textContent = `${Math.round(xpPercent)}%`;
-  }
-
-  saveData();
+  const dailyBoxes = [...document.querySelectorAll("#dailyList input")];
+  const dailyDone = dailyBoxes.filter(b => b.checked);
+  const xp = dailyDone.reduce((sum, b) =>
+    sum + plans.daily[Number(b.dataset.index)][2], 0);
+  document.getElementById("xpTotal").textContent = xp;
+  document.getElementById("xpBar").style.width = (xp / 70 * 100) + "%";
+  document.getElementById("xpProgress").textContent =
+    `完成 ${dailyDone.length} / ${plans.daily.length} 項`;
+  document.getElementById("xpPercent").textContent =
+    Math.round(xp / 70 * 100) + "%";
 }
-
-// 分頁切換功能
-const tabs = document.querySelectorAll(".tab");
-tabs.forEach(tab => {
-  tab.addEventListener("click", () => {
-    tabs.forEach(t => t.classList.remove("active"));
-    tab.classList.add("active");
-    
-    current = tab.dataset.tab;
-    
-    document.querySelectorAll(".panel").forEach(p => p.hidden = true);
-    document.getElementById(current).hidden = false;
-
-    const labels = { standard: "標準練習", advanced: "進階練習", daily: "每日 XP 任務" };
+function resetCurrent() {
+  const id = current === "standard" ? "standardList" :
+    current === "advanced" ? "advancedList" : "dailyList";
+  document.querySelectorAll(`#${id} input`).forEach(b => b.checked = false);
+  updateProgress();
+}
+function resetAll() {
+  document.querySelectorAll('input[type="checkbox"]').forEach(b => b.checked = false);
+  document.getElementById("reflection").value = "";
+  updateProgress();
+}
+updateProgress();
+</script>
+</body>
+</html>
