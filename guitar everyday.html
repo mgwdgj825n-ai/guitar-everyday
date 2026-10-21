@@ -18,8 +18,7 @@ body {
   margin:0;
   background:var(--paper);
   color:var(--ink);
-  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",
-    "PingFang TC",sans-serif;
+  font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC", "PingFang TC",sans-serif;
   line-height:1.65;
 }
 header {
@@ -217,7 +216,7 @@ const plans = {
 
 let current = "standard";
 
-// 渲染清單項目 (已修復錯誤的屬性讀取)
+// 渲染清單項目
 function makeItems(id, items, isDaily=false) {
   const root = document.getElementById(id);
   root.innerHTML = "";
@@ -234,15 +233,15 @@ function makeItems(id, items, isDaily=false) {
     main.className = "item-main";
     const title = document.createElement("div");
     title.className = "item-title";
-    title.textContent = item[0]; // 修正：正確讀取項目名稱
+    title.textContent = item[0];
     const detail = document.createElement("div");
     detail.className = "detail";
-    detail.textContent = item[1]; // 修正：正確讀取詳細說明
+    detail.textContent = item[1];
     main.append(title, detail);
 
     const badge = document.createElement("span");
     badge.className = isDaily ? "xp" : "time";
-    badge.textContent = isDaily ? "+" + item[2] + " XP" : item[2] + " 分鐘"; // 修正：正確讀取數值
+    badge.textContent = isDaily ? "+" + item[2] + " XP" : item[2] + " 分鐘";
     el.append(checkbox, main, badge);
     root.appendChild(el);
   });
@@ -254,12 +253,10 @@ function updateProgress() {
   const total = checkboxes.length;
   const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
   
-  // 更新頂部通用進度
   document.getElementById("progressText").textContent = `${checked} / ${total} 項`;
   const percent = total > 0 ? (checked / total) * 100 : 0;
   document.getElementById("progressBar").style.width = `${percent}%`;
 
-  // 狀態文字提示
   const hintText = document.getElementById("progressHint");
   if (percent === 100) {
     hintText.textContent = "太棒了！今日練習全部達成！";
@@ -269,7 +266,6 @@ function updateProgress() {
     hintText.textContent = "開始今天的練習吧！";
   }
 
-  // 針對每日任務卡 (XP) 的專屬更新
   if (current === "daily") {
     let currentXp = 0;
     let maxXp = 0;
@@ -298,5 +294,7 @@ tabs.forEach(tab => {
     
     current = tab.dataset.tab;
     
-    // 控制面板隱藏/顯示
     document.querySelectorAll(".panel").forEach(p => p.hidden = true);
+    document.getElementById(current).hidden = false;
+
+    const labels = { standard: "標準練習", advanced: "進階練習", daily: "每日 XP 任務" };
